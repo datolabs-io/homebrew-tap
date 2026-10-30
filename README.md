@@ -4,6 +4,7 @@ Homebrew casks for tools by [MB Datolabs](https://github.com/datolabs-io), publi
 
 ```bash
 brew install --cask datolabs-io/tap/mcp-toolsearch-proxy
+brew install --cask datolabs-io/tap/opsy
 ```
 
 | Cask | Project |
