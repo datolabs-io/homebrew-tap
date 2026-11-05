@@ -25,8 +25,14 @@ jobs:
         with:
           token: ${{ github.token }}
 
-      - name: Check style and syntax
-        run: brew test-bot --only-tap-syntax
+      - name: Check that every cask loads
+        run: brew readall --aliases --os=all --arch=all datolabs-io/tap
+
+      # GoReleaser writes a "# No zap stanza required" comment that this cop
+      # rejects, and the casks are regenerated on every release, so fixing
+      # them here would not stick.
+      - name: Check style
+        run: brew style --except-cops Cask/ZapNotRequired datolabs-io/tap
 
       - name: Audit casks
         run: brew audit --cask --online --tap datolabs-io/tap
