@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  casks:
+    name: Casks
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      # Checks out this tap into Homebrew's tap directory at the ref under test.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@55301c8cac0982bc2fbeb71275fa0b71b963bdb1 # main
+        with:
+          token: ${{ github.token }}
+
+      - name: Check style and syntax
+        run: brew test-bot --only-tap-syntax
+
+      - name: Audit casks
+        run: brew audit --cask --online --tap datolabs-io/tap
+
+      # Loading a cask is not the same as installing it: this runs the
+      # postflight steps that remove the quarantine attribute.
+      - name: Install and uninstall each cask
+        run: |
+          for cask in "$(brew --repository datolabs-io/tap)"/Casks/*.rb; do
+            name="$(basename "$cask" .rb)"
+            brew install --cask "datolabs-io/tap/$name"
+            brew uninstall --cask "datolabs-io/tap/$name"
+          done
+
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [casks]
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any required job failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
